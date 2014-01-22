@@ -13,7 +13,10 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		new Timer().schedule(new com.company22.brutalbeta.TimerTask(), 0, 1000);
+		double beta = 17.502;
+		double lambda = 240.97;
+		
+		new Timer().schedule(new com.company22.brutalbeta.TimerTask(beta, lambda), 0, 1000);
 	}
 
 	@Override
