@@ -20,6 +20,7 @@ public class MainActivity extends Activity {
 		//Get current value and display as string
 		TextView textView = (TextView) findViewById(R.id.textView1);
 		textView.setText(String.valueOf(19)); //Output Value/variable
+		//Cannot read variable from TimerTask Void-class, but it goes above
 		
 		Timer t = new Timer();
 		t.schedule(new com.company22.brutalbeta.TimerTask(beta, lambda), 10000, 10000);
