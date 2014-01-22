@@ -3,7 +3,7 @@ package com.company22.brutalbeta;
 import android.os.Bundle;
 import android.app.Activity;
 import android.view.Menu;
-//fgfgfgf
+
 public class MainActivity extends Activity {
 
 	@Override
