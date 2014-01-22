@@ -17,13 +17,14 @@ public class MainActivity extends Activity {
 		double beta = 17.502;
 		double lambda = 240.97;
 		
-		new Timer().schedule(new com.company22.brutalbeta.TimerTask(beta, lambda), 0, 1000);
-		
 		//Get current value and display as string
-		TextView textView = (TextView) findViewById(R.id.textView2);
-		textView.setText(String.valueOf(TimerTask.getValue()));
+		TextView textView = (TextView) findViewById(R.id.textView1);
+		textView.setText(String.valueOf(19)); //Output Value/variable
+		
+		Timer t = new Timer();
+		t.schedule(new com.company22.brutalbeta.TimerTask(beta, lambda), 10000, 10000);
 	}
-	
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
