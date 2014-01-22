@@ -2,6 +2,7 @@ package com.company22.brutalbeta;
 
 import java.util.Random;
 
+
 public class TimerTask extends java.util.TimerTask
 {
 	public double beta;
@@ -27,7 +28,13 @@ public class TimerTask extends java.util.TimerTask
 		
 		// Output
 		System.out.println("Temperature: " + temperature + " Humidity: " + humidity + " Dew point: " + dewPoint);
-		
+	
 	}
+
+	//Return a value (temp, humid... etc...)
+	public static double getValue(){
+		return 10; //placeholder
+	}
+
 
 }
