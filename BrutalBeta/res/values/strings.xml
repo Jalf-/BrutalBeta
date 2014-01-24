@@ -4,5 +4,7 @@
     <string name="app_name">Brutal Beta</string>
     <string name="action_settings">Settings</string>
     <string name="hello_world">Hello world!</string>
+    <string name="enter_room_temperature">Enter room temperature.</string>
+    <string name="defaultRoomTemp">20</string>
 
 </resources>

@@ -9,13 +9,56 @@
     tools:context=".MainActivity" >
 
     <TextView
-        android:id="@+id/textView1"
+        android:id="@+id/dewPointTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="106dp"
-        android:text="Large Text"
+        android:layout_marginTop="147dp"
+        android:text="@string/hello_world"
         android:textAppearance="?android:attr/textAppearanceLarge" />
+<!--
+    <EditText
+        android:id="@+id/roomTempEditNumber"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/seekBar1"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="21dp"
+        android:ems="11"
+        android:hint="@string/enter_room_temperature"
+        android:inputType="numberSigned" >
+
+        <requestFocus />
+    </EditText> -->
+
+    <TextView
+        android:id="@+id/roomTempText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/roomTempSlider"
+        android:layout_centerHorizontal="true"
+        android:text="@string/enter_room_temperature"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <SeekBar
+        android:id="@+id/roomTempSlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/dewPointTextView"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="68dp"
+        android:max="200"
+        android:progress="100" />
+
+    <TextView
+        android:id="@+id/roomTempNumber"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/dewPointTextView"
+        android:layout_alignLeft="@+id/roomTempText"
+        android:layout_marginBottom="38dp"
+        android:text="@string/defaultRoomTemp"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
 
 </RelativeLayout>
