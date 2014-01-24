@@ -6,5 +6,7 @@
     <string name="hello_world">Hello world!</string>
     <string name="enter_room_temperature">Enter room temperature.</string>
     <string name="defaultRoomTemp">20</string>
+    <string name="defaultDewPoint">0</string>
+    <string name="defaultMessageText">Pending results.</string>
 
 </resources>

@@ -6,6 +6,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import android.app.Activity;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Menu;
 import android.widget.SeekBar;
@@ -18,8 +19,11 @@ public class MainActivity extends Activity
 	private float beta;
 	private float lambda;
 	private float temperature;
+	private float sensorTemperature;
 	private SeekBar roomTempSlider;
 	private TextView roomTempNumber;
+	private TextView messageText;
+	private TextView dewPointText;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
@@ -30,10 +34,14 @@ public class MainActivity extends Activity
 		// Initialize variables.
 		beta = 17.502f;
 		lambda = 240.97f;
+		dewPointText = (TextView) findViewById(R.id.dewPointTextView);
+		roomTempSlider = (SeekBar) findViewById(R.id.roomTempSlider);
+		roomTempNumber = (TextView) findViewById(R.id.roomTempNumber);
+		messageText = (TextView) findViewById(R.id.messageText);
 		
 		// Start listeners.
 		// Slider listener.
-		roomTempSlider = (SeekBar) findViewById(R.id.roomTempSlider);
+		
 		roomTempSlider.setOnSeekBarChangeListener(new OnSeekBarChangeListener()
 		{
 			@Override
@@ -45,7 +53,6 @@ public class MainActivity extends Activity
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser)
 			{
-				roomTempNumber = (TextView) findViewById(R.id.roomTempNumber);
 				roomTempNumber.setText(String.valueOf((Float.parseFloat(String.valueOf(progress)) / 10) + 10));
 			}
 		});
@@ -91,15 +98,15 @@ public class MainActivity extends Activity
 			// Try to get room temperature from the slider.
 			try
 			{			
-				roomTempSlider = (SeekBar) findViewById(R.id.roomTempSlider);
 				temperature = (Float.parseFloat(String.valueOf(roomTempSlider.getProgress())) / 10) + 10;
 			}
 			catch (Exception e)
 			{
 				temperature = 20;
 			}
+			
 			Random random = new Random();
-			float humidity = random.nextInt(99) + random.nextFloat();
+			float humidity = (random.nextInt(19) + random.nextFloat()) + 20;
 			
 			// Dew point calculation.
 			float parentheses = (float) (Math.log(humidity / 100) + (getBeta() * temperature) / (getLambda() + temperature));
@@ -111,9 +118,27 @@ public class MainActivity extends Activity
 			formatter.close();
 			
 			// Output.
-			TextView dewPointText = (TextView) findViewById(R.id.dewPointTextView);
 			dewPointText.setText(dewPointString);
+			
+			// Default start temperature.
+			sensorTemperature = -273.15f;
+			
+			// Placeholder for sensor temperature
+			sensorTemperature = 0f;
 
+			// Check if it is safe to turn on electronics.
+			if (sensorTemperature - 0.5 <= dewPoint)
+			{
+				messageText.setTextColor(Color.argb(255, 255, 0, 0));
+				messageText.setText("Don't turn on your electronics!");
+			}
+			else
+			{
+				messageText.setTextColor(Color.argb(255, 0, 255, 0));
+				messageText.setText("It's now safe to turn on your electronics.");
+			}
+			
+			// Debug data.
 			System.out.println("Temperature: " + temperature + " Humidity: " + humidity + " Dew point: " + dewPoint);
 		}
 	};
