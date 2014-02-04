@@ -1,10 +1,10 @@
 package com.company22.brutalbeta;
 
+import java.io.IOException;
 import java.text.DecimalFormat;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Formatter;
-import java.util.Stack;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -20,7 +20,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
@@ -33,11 +32,20 @@ import com.androidplot.xy.XYSeries;
 
 public class MainActivity extends Activity implements SensorEventListener
 {	
+	// TODO Remove graph
+	// TODO Time to turn on
+	// TODO UI
+	// TODO Status indicator
+	// TODO Sound or vibration
+	// TODO SMS
+	
 	// Make variables.
 	private float beta;
 	private float lambda;
 	private float temperature;
+	private ArrayList<Float> temperatureList;
 	private float sensorTemperature;
+	private float humidity;
 	private float sensorHumidity;
 	private SeekBar roomTempSlider;
 	private TextView roomTempNumber;
@@ -46,6 +54,11 @@ public class MainActivity extends Activity implements SensorEventListener
 	private TextView dewPointText;
 	private boolean hasSensor = false;
 	private Formatter formatter;
+	protected static final String TAG = "brutalbeta";
+	
+	// Bluetooth.
+	private Bluetooth bluetooth;
+	protected static String bluetoothData = ""; 
 	
 	// Sensor variables.
 	private SensorManager mSensorManager;
@@ -54,8 +67,8 @@ public class MainActivity extends Activity implements SensorEventListener
 	
 	// Graph variables.
 	private XYPlot plot;
-	private static Stack<Float> dewPointStack;
-	private static Number[] dewPointNumbers;
+	private static ArrayList<Float> dewPointList;
+	private static ArrayList<Float> dewPointLongList;
 	private static XYSeries dewPointSeries;
 	private LineAndPointFormatter dewpointFormat;
 	
@@ -66,7 +79,7 @@ public class MainActivity extends Activity implements SensorEventListener
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+//		getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
 		
 		// Initialize variables.
 		beta = 17.502f;
@@ -76,22 +89,29 @@ public class MainActivity extends Activity implements SensorEventListener
 		roomTempNumber = (TextView) findViewById(R.id.roomTempNumber);
 		roomTempText = (TextView) findViewById(R.id.roomTempText);
 		messageText = (TextView) findViewById(R.id.messageText);
+		temperatureList = new ArrayList<Float>();
+		
+		// Bluetooth
+		bluetooth = new Bluetooth(getApplicationContext(), getContentResolver());
+		bluetooth.checkBt();
+		bluetooth.connect();
 		
 		// Sensor variables.
 		mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+		// Check if sensors does exist.
 		if (mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE) != null
 				&& mSensorManager.getDefaultSensor(Sensor.TYPE_RELATIVE_HUMIDITY) != null)
 		{
 			hasSensor = true;
 			mTemperature = mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
 			mHumidity = mSensorManager.getDefaultSensor(Sensor.TYPE_RELATIVE_HUMIDITY);
+			// Remove unneeded Views.
 			roomTempText.setVisibility(View.GONE);
 			roomTempSlider.setVisibility(View.GONE);
 		}
 		else 
 		{
 			hasSensor = false;
-			System.out.println("is null");
 		}
 		
 		// Graph variables.
@@ -101,8 +121,8 @@ public class MainActivity extends Activity implements SensorEventListener
 		plot.setTicksPerDomainLabel(5);
 		plot.getGraphWidget().setDomainLabelOrientation(-45);
 		plot.setRangeBoundaries(-20, 50, BoundaryMode.FIXED);
-		dewPointStack = new Stack<Float>();
-		dewPointNumbers = new Number[10];
+		dewPointList = new ArrayList<Float>();
+		dewPointLongList = new ArrayList<Float>();
 		dewpointFormat = new LineAndPointFormatter(Color.RED, Color.GREEN, Color.BLUE, null);
 		dewpointFormat.getFillPaint().setAlpha(64);
 		
@@ -119,6 +139,7 @@ public class MainActivity extends Activity implements SensorEventListener
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser)
 			{
+				// Change the temperature text when slider is moved.
 				roomTempNumber.setText(String.valueOf((Float.parseFloat(String.valueOf(progress)) / 10) + 10));
 			}
 		});
@@ -143,13 +164,38 @@ public class MainActivity extends Activity implements SensorEventListener
 		return true;
 	}
 	
+	@Override
+	protected void onDestroy()
+	{
+		super.onDestroy();
+		
+		try
+		{
+			bluetooth.getBtSocket().close();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Called when application is resumed.
+	 */
 	protected void onResume()
 	{
 		super.onResume();
-		mSensorManager.registerListener(this, mTemperature, SensorManager.SENSOR_DELAY_NORMAL);
-		mSensorManager.registerListener(this, mHumidity, SensorManager.SENSOR_DELAY_NORMAL);
+		if (hasSensor)
+		{
+			// Register sensors.
+			mSensorManager.registerListener(this, mTemperature, SensorManager.SENSOR_DELAY_NORMAL);
+			mSensorManager.registerListener(this, mHumidity, SensorManager.SENSOR_DELAY_NORMAL);
+		}
 	}
 	
+	/**
+	 * Called when application is paused.
+	 */
 	protected void onPause()
 	{
 		super.onPause();
@@ -173,22 +219,35 @@ public class MainActivity extends Activity implements SensorEventListener
 		public void run()
 		{
 			// Get input data.
-			
-			
-			
 			// Try to get room temperature from the slider.
-			try
-			{			
-				temperature = (Float.parseFloat(String.valueOf(roomTempSlider.getProgress())) / 10) + 10;
-			}
-			catch (Exception e)
-			{
-				temperature = 20;
-			}
+//			try
+//			{			
+//				temperature = (Float.parseFloat(String.valueOf(roomTempSlider.getProgress())) / 10) + 10;
+//			}
+//			catch (Exception e)
+//			{
+//				temperature = 20;
+//			}
+			temperature += new Random().nextDouble() - 0.25;
+				
 			
-//			Random random = new Random();
-//			float humidity = (random.nextInt(19) + random.nextFloat()) + 20;
-			float humidity = sensorHumidity;
+			temperatureList.add(temperature);
+			
+			float temperatureAverage = 0;
+			ArrayList<Float> temperatureAverageList = new ArrayList<Float>();
+			
+			for (int i = 0; i < temperatureList.size() - 1; i++)
+			{
+				temperatureAverageList.add(temperatureList.get(i + 1) - temperatureList.get(i));
+			}
+			for (Float temperatureAverageValue : temperatureAverageList) temperatureAverage += temperatureAverageValue;
+			temperatureAverage /= temperatureAverageList.size();
+			
+			
+			
+			// Set humidity value.
+			if (!hasSensor) humidity = 30;
+			else humidity = sensorHumidity;
 			
 			// Dew point calculation.
 			float parentheses = (float) (Math.log(humidity / 100) + (getBeta() * temperature) / (getLambda() + temperature));
@@ -199,17 +258,25 @@ public class MainActivity extends Activity implements SensorEventListener
 			String dewPointString = formatter.format("%.1f", dewPoint).out().toString();
 			formatter.close();
 			
-			// Insert to stack
-			dewPointStack.insertElementAt(dewPoint, 0);
-			if (dewPointStack.size() > 10) dewPointStack.remove(10);  
+			// Insert to list.
+			dewPointList.add(dewPoint);
+			dewPointLongList.add(dewPoint);
 			
-			// Reverse stack and get it in the array and reverse the stack again.
-			Collections.reverse(dewPointStack);
-			for (int i = 0; i < dewPointStack.size(); i++)
-			{
-				dewPointNumbers[i] = dewPointStack.get(i);
-			}
-			Collections.reverse(dewPointStack);
+			// Remove last value on the list if it is larger than 10.
+			if (dewPointList.size() > 10) dewPointList.remove(0);
+			
+			// Remove last value on the list if it is larger than 3600.
+			if (dewPointLongList.size() > 3600) dewPointList.remove(0);
+			
+			// Calculate when it is possible to turn it on.
+//			ArrayList<Float> xValues = new ArrayList<Float>();
+//			for (int i = 1; i < dewPointList.size() + 1; i++)
+//			{
+//				xValues.add((float) i);
+//			}
+//			float[] regression = getSimpleLinearRegression(xValues, dewPointList);
+//			xValues = null;
+//			System.out.println("A: " + regression[1] + " B: " + regression);
 		
 			// Output.
 			if (hasSensor)
@@ -218,12 +285,8 @@ public class MainActivity extends Activity implements SensorEventListener
 				roomTempNumber.setText(formatter.format("%.1f", sensorTemperature).out().toString());
 				formatter.close();
 			}
-			else
-			{
-				
-			}
 			
-			dewPointText.setText(dewPointString);
+			dewPointText.setText("Dew point: " + dewPointString);
 
 			// Check if it is safe to turn on electronics.
 			if (sensorTemperature - 0.5 <= dewPoint)
@@ -238,14 +301,27 @@ public class MainActivity extends Activity implements SensorEventListener
 			}
 			
 			// Update graph.
-			dewPointSeries = new SimpleXYSeries(Arrays.asList(dewPointNumbers), SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, "Dew Point");
+			dewPointSeries = new SimpleXYSeries(dewPointList, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, "Dew Point");
 			plot.clear();
 			plot.addSeries(dewPointSeries, dewpointFormat);
 			plot.redraw();
 			
+			
+			
+			
+			String[] strings = bluetoothData.split(",");
+			System.out.println(strings[0]);
+			System.out.println(strings[1]);
+			roomTempNumber.setText(bluetoothData);
+			
+			
+			
+			
 			// Debug data.
-			System.out.println("Temperature: " + temperature + " Humidity: " + humidity + " Dew point: " + dewPoint);
-			System.out.println("Sensor Temperature: " + sensorTemperature);
+			
+			System.out.println(temperature + " " + temperatureAverage);
+//			System.out.println("Temperature: " + temperature + " Humidity: " + humidity + " Dew point: " + dewPoint);
+//			System.out.println("Sensor Temperature: " + sensorTemperature);
 		}
 	};
 
@@ -294,5 +370,44 @@ public class MainActivity extends Activity implements SensorEventListener
 		// Set sensor values.
 		if (event.sensor == mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE)) sensorTemperature = event.values[0];
 		else if (event.sensor == mSensorManager.getDefaultSensor(Sensor.TYPE_RELATIVE_HUMIDITY)) sensorHumidity = event.values[0];
+	}
+	/**
+	 * Calculate the simple linear regression for two value sets.
+	 * @param xValues X values.
+	 * @param yValues Y values.
+	 * @return Float array containing two values, first values is th slope value and the second is the y-intercept value.
+	 */
+	public float[] getSimpleLinearRegression(ArrayList<Float> xValues, ArrayList<Float> yValues)
+	{
+		// Check if both arrays are the same size.
+		if (xValues.size() != yValues.size()) return null;
+		
+		// Initialize variables.
+		float xAverage = 0;
+		float yAverage = 0;
+		float xSubAverageRaisedSum = 0;
+		float xySubAverageMultiSum = 0;
+		float[] regression = new float[2];
+		
+		// Calculate average of the x and y values.
+		// Sum x y values.
+		for (int i = 0; i < xValues.size(); i++)
+		{
+			xAverage += xValues.get(i);
+			yAverage += yValues.get(i);
+		}
+		// Divide by the size to get average.
+		xAverage /= xValues.size();
+		yAverage /= yValues.size();
+
+		// Magic.
+		for (Float xValue : xValues) xSubAverageRaisedSum += Math.pow(xValue - xAverage, 2);
+		for (int i = 0; i < xValues.size(); i++) xySubAverageMultiSum += (xValues.get(i) - xAverage) * (yValues.get(i) - yAverage);
+		
+		// Calculate slope and y-intercept.
+		regression[0] = xSubAverageRaisedSum / xySubAverageMultiSum;
+		regression[1] = yAverage - regression[0] * xAverage;
+		
+		return regression;
 	}
 }
