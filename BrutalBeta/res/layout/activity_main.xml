@@ -55,12 +55,21 @@
         android:text="@string/defaultMessageText"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
-    <com.androidplot.xy.XYPlot
+    <!-- <com.androidplot.xy.XYPlot
         android:id="@+id/xyPloy"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@+id/messageText"
         android:layout_alignParentBottom="true"
-        android:layout_marginBottom="0dp" />
+        android:layout_marginBottom="0dp" />  -->
+
+    <ImageView
+        android:id="@+id/statusImageView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:contentDescription="@string/defaultImage"
+        android:src="@drawable/off" />
 
 </RelativeLayout>

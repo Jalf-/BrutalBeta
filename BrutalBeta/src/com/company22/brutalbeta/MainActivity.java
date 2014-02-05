@@ -1,64 +1,78 @@
 package com.company22.brutalbeta;
 
 import java.io.IOException;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Formatter;
-import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.media.AudioManager;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Vibrator;
+import android.support.v4.app.NotificationCompat;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 
-import com.androidplot.xy.BoundaryMode;
-import com.androidplot.xy.LineAndPointFormatter;
-import com.androidplot.xy.SimpleXYSeries;
-import com.androidplot.xy.XYPlot;
-import com.androidplot.xy.XYSeries;
-
 public class MainActivity extends Activity implements SensorEventListener
 {	
-	// TODO Remove graph
+	// TODO Remove graph - done
 	// TODO Time to turn on
 	// TODO UI
-	// TODO Status indicator
-	// TODO Sound or vibration
-	// TODO SMS
+	// TODO Status indicator - part
+	// TODO Sound or vibration - done
+	// TODO SMS - nah
 	
 	// Make variables.
 	private float beta;
 	private float lambda;
 	private float temperature;
 	private ArrayList<Float> temperatureList;
-	private float sensorTemperature;
-	private float humidity;
+	private ArrayList<Float> temperatureAverageList;
+	private float sensorRoomTemperature;
+	private float sensorTemperature = 1337;
+//	private float humidity;
 	private float sensorHumidity;
+	private boolean hasSensor = false;
+	private Formatter formatter;
+	protected static final String TAG = "brutalbeta";
+	private boolean isReadyToTurn = false;
+	
+	// Android variables.
 	private SeekBar roomTempSlider;
 	private TextView roomTempNumber;
 	private TextView roomTempText;
 	private TextView messageText;
 	private TextView dewPointText;
-	private boolean hasSensor = false;
-	private Formatter formatter;
-	protected static final String TAG = "brutalbeta";
+	private ImageView imageView;
+	
+	// Notification variables.
+	private AudioManager audioManager;
+	private Vibrator vibrator;
+	private NotificationManager notificationManager;
+	private Uri soundUri;
+	private NotificationCompat.Builder mBuilder;
 	
 	// Bluetooth.
 	private Bluetooth bluetooth;
-	protected static String bluetoothData = ""; 
+	protected static String bluetoothData = "1337,1337";
+	private String[] bluetoothDataSplit;
 	
 	// Sensor variables.
 	private SensorManager mSensorManager;
@@ -66,11 +80,8 @@ public class MainActivity extends Activity implements SensorEventListener
 	private Sensor mHumidity;
 	
 	// Graph variables.
-	private XYPlot plot;
 	private static ArrayList<Float> dewPointList;
-	private static ArrayList<Float> dewPointLongList;
-	private static XYSeries dewPointSeries;
-	private LineAndPointFormatter dewpointFormat;
+	private static ArrayList<Float> dewPointLongList;	// Remove sis------------------------------------------------
 	
 	@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 	@Override
@@ -78,8 +89,6 @@ public class MainActivity extends Activity implements SensorEventListener
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-
-//		getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
 		
 		// Initialize variables.
 		beta = 17.502f;
@@ -89,10 +98,24 @@ public class MainActivity extends Activity implements SensorEventListener
 		roomTempNumber = (TextView) findViewById(R.id.roomTempNumber);
 		roomTempText = (TextView) findViewById(R.id.roomTempText);
 		messageText = (TextView) findViewById(R.id.messageText);
+		imageView = (ImageView) findViewById(R.id.statusImageView);
 		temperatureList = new ArrayList<Float>();
+		temperatureAverageList = new ArrayList<Float>();
+		
+		// Notification variables.
+		audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+		vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+		notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+		soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+		// Prepare the build of the notification.
+		mBuilder = new NotificationCompat.Builder(getApplicationContext())
+			.setSmallIcon(R.drawable.ic_launcher)
+			.setContentTitle(getString(R.string.app_name))
+			.setContentText(getString(R.string.notificationText));
 		
 		// Bluetooth
 		bluetooth = new Bluetooth(getApplicationContext(), getContentResolver());
+		bluetoothDataSplit = new String[2];
 		bluetooth.checkBt();
 		bluetooth.connect();
 		
@@ -115,19 +138,10 @@ public class MainActivity extends Activity implements SensorEventListener
 		}
 		
 		// Graph variables.
-		plot = (XYPlot) findViewById(R.id.xyPloy);
-		plot.getGraphWidget().setDomainValueFormat(new DecimalFormat("0"));
-		plot.setTicksPerRangeLabel(3);
-		plot.setTicksPerDomainLabel(5);
-		plot.getGraphWidget().setDomainLabelOrientation(-45);
-		plot.setRangeBoundaries(-20, 50, BoundaryMode.FIXED);
 		dewPointList = new ArrayList<Float>();
 		dewPointLongList = new ArrayList<Float>();
-		dewpointFormat = new LineAndPointFormatter(Color.RED, Color.GREEN, Color.BLUE, null);
-		dewpointFormat.getFillPaint().setAlpha(64);
 		
 		// Start listeners.
-		// Slider listener.
 		roomTempSlider.setOnSeekBarChangeListener(new OnSeekBarChangeListener()
 		{
 			@Override
@@ -145,6 +159,7 @@ public class MainActivity extends Activity implements SensorEventListener
 		});
 
 		// Start timer.
+		Log.d(TAG, "Starting timer loop.");
 		Timer timer = new Timer();
 		timer.schedule(new TimerTask()
 		{	
@@ -168,7 +183,7 @@ public class MainActivity extends Activity implements SensorEventListener
 	protected void onDestroy()
 	{
 		super.onDestroy();
-		
+		// Close Bluetooth connection when app is closed.
 		try
 		{
 			bluetooth.getBtSocket().close();
@@ -199,6 +214,7 @@ public class MainActivity extends Activity implements SensorEventListener
 	protected void onPause()
 	{
 		super.onPause();
+		// Unregister listeners.
 		mSensorManager.unregisterListener(this);
 	}
 
@@ -219,38 +235,48 @@ public class MainActivity extends Activity implements SensorEventListener
 		public void run()
 		{
 			// Get input data.
-			// Try to get room temperature from the slider.
-//			try
-//			{			
-//				temperature = (Float.parseFloat(String.valueOf(roomTempSlider.getProgress())) / 10) + 10;
-//			}
-//			catch (Exception e)
-//			{
-//				temperature = 20;
-//			}
-			temperature += new Random().nextDouble() - 0.25;
-				
-			
-			temperatureList.add(temperature);
+			bluetoothDataSplit = bluetoothData.split(",");			
+
+			// Temperature.
+			if (!hasSensor)
+			{
+				// Slider value.
+				temperature = (Float.parseFloat(String.valueOf(roomTempSlider.getProgress())) / 10) + 10;
+			}
+			else
+			{
+				temperature = sensorRoomTemperature;
+			}
+			// Temperature from the Arduino sensor.
+			sensorTemperature = Float.parseFloat(bluetoothDataSplit[1]);
 			
 			float temperatureAverage = 0;
-			ArrayList<Float> temperatureAverageList = new ArrayList<Float>();
 			
-			for (int i = 0; i < temperatureList.size() - 1; i++)
+			// Check if sensor data has been received.
+			if (sensorTemperature != 1337)
 			{
-				temperatureAverageList.add(temperatureList.get(i + 1) - temperatureList.get(i));
+				// Adds sensor temperature to a list.
+				temperatureList.add(sensorTemperature);
+				
+				// Builds average list.
+				for (int i = 0; i < temperatureList.size() - 1; i++)
+				{
+					// Adds the difference between each entry. 
+					temperatureAverageList.add(temperatureList.get(i + 1) - temperatureList.get(i));
+				}
+				// Adds the average list to average temperature.
+				for (Float temperatureAverageValue : temperatureAverageList) temperatureAverage += temperatureAverageValue;
+				// Divide the average value by the list size.
+				temperatureAverage /= temperatureAverageList.size();
+				// Clear the average list to avoid clutter.
+				temperatureAverageList.clear();
 			}
-			for (Float temperatureAverageValue : temperatureAverageList) temperatureAverage += temperatureAverageValue;
-			temperatureAverage /= temperatureAverageList.size();
-			
-			
-			
+
 			// Set humidity value.
-			if (!hasSensor) humidity = 30;
-			else humidity = sensorHumidity;
+			sensorHumidity = Float.parseFloat(bluetoothDataSplit[0]);
 			
 			// Dew point calculation.
-			float parentheses = (float) (Math.log(humidity / 100) + (getBeta() * temperature) / (getLambda() + temperature));
+			float parentheses = (float) (Math.log(sensorHumidity / 100) + (getBeta() * temperature) / (getLambda() + temperature));
 			float dewPoint = (getLambda() * parentheses) / (getBeta() - parentheses);
 			
 			// Format output.
@@ -267,22 +293,12 @@ public class MainActivity extends Activity implements SensorEventListener
 			
 			// Remove last value on the list if it is larger than 3600.
 			if (dewPointLongList.size() > 3600) dewPointList.remove(0);
-			
-			// Calculate when it is possible to turn it on.
-//			ArrayList<Float> xValues = new ArrayList<Float>();
-//			for (int i = 1; i < dewPointList.size() + 1; i++)
-//			{
-//				xValues.add((float) i);
-//			}
-//			float[] regression = getSimpleLinearRegression(xValues, dewPointList);
-//			xValues = null;
-//			System.out.println("A: " + regression[1] + " B: " + regression);
 		
 			// Output.
 			if (hasSensor)
 			{
 				formatter = new Formatter();
-				roomTempNumber.setText(formatter.format("%.1f", sensorTemperature).out().toString());
+				roomTempNumber.setText(formatter.format("%.1f", sensorRoomTemperature).out().toString());
 				formatter.close();
 			}
 			
@@ -293,35 +309,46 @@ public class MainActivity extends Activity implements SensorEventListener
 			{
 				messageText.setTextColor(Color.argb(255, 255, 0, 0));
 				messageText.setText("Don't turn on your electronics!");
+				// Change ready image.
+				imageView.setImageResource(R.drawable.off);
+				isReadyToTurn = false;
 			}
 			else
 			{
 				messageText.setTextColor(Color.argb(255, 0, 255, 0));
 				messageText.setText("It's now safe to turn on your electronics.");
+				// Change ready image.
+				imageView.setImageResource(R.drawable.on);
+				// Check if it wasn't ready last update.
+				if (!isReadyToTurn)
+				{
+					// Go thought what ringer mode the phone is on.
+					switch (audioManager.getRingerMode())
+					{
+					// Ringer mode is normal and the phone will receive a notification with sound and vibration.
+					case AudioManager.RINGER_MODE_NORMAL:
+						notificationManager.notify(0, mBuilder.setSound(soundUri).build());
+						vibrator.vibrate(1000);
+						break;
+					// Ringer mode is vibration and the phone will receive a notification and vibration.
+					case AudioManager.RINGER_MODE_VIBRATE:
+						notificationManager.notify(0, mBuilder.build());
+						vibrator.vibrate(1000);
+						break;
+					// Ringer mode is silent and the phone will receive a notification.
+					case AudioManager.RINGER_MODE_SILENT:
+						notificationManager.notify(0, mBuilder.build());
+						break;
+					}
+				}
+				isReadyToTurn = true;
 			}
-			
-			// Update graph.
-			dewPointSeries = new SimpleXYSeries(dewPointList, SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, "Dew Point");
-			plot.clear();
-			plot.addSeries(dewPointSeries, dewpointFormat);
-			plot.redraw();
-			
-			
-			
-			
-			String[] strings = bluetoothData.split(",");
-			System.out.println(strings[0]);
-			System.out.println(strings[1]);
-			roomTempNumber.setText(bluetoothData);
-			
-			
-			
-			
+
 			// Debug data.
-			
-			System.out.println(temperature + " " + temperatureAverage);
+			System.out.println(sensorTemperature + " " + temperatureAverage);
 //			System.out.println("Temperature: " + temperature + " Humidity: " + humidity + " Dew point: " + dewPoint);
-//			System.out.println("Sensor Temperature: " + sensorTemperature);
+//			System.out.println("Sensor Room Temperature: " + sensorRoomTemperature);
+//			System.out.println("Sensor Temperature: " + sensorTemperature + " Sensor Humidity: " + sensorHumidity);
 		}
 	};
 
@@ -368,46 +395,7 @@ public class MainActivity extends Activity implements SensorEventListener
 	public void onSensorChanged(SensorEvent event)
 	{
 		// Set sensor values.
-		if (event.sensor == mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE)) sensorTemperature = event.values[0];
-		else if (event.sensor == mSensorManager.getDefaultSensor(Sensor.TYPE_RELATIVE_HUMIDITY)) sensorHumidity = event.values[0];
-	}
-	/**
-	 * Calculate the simple linear regression for two value sets.
-	 * @param xValues X values.
-	 * @param yValues Y values.
-	 * @return Float array containing two values, first values is th slope value and the second is the y-intercept value.
-	 */
-	public float[] getSimpleLinearRegression(ArrayList<Float> xValues, ArrayList<Float> yValues)
-	{
-		// Check if both arrays are the same size.
-		if (xValues.size() != yValues.size()) return null;
-		
-		// Initialize variables.
-		float xAverage = 0;
-		float yAverage = 0;
-		float xSubAverageRaisedSum = 0;
-		float xySubAverageMultiSum = 0;
-		float[] regression = new float[2];
-		
-		// Calculate average of the x and y values.
-		// Sum x y values.
-		for (int i = 0; i < xValues.size(); i++)
-		{
-			xAverage += xValues.get(i);
-			yAverage += yValues.get(i);
-		}
-		// Divide by the size to get average.
-		xAverage /= xValues.size();
-		yAverage /= yValues.size();
-
-		// Magic.
-		for (Float xValue : xValues) xSubAverageRaisedSum += Math.pow(xValue - xAverage, 2);
-		for (int i = 0; i < xValues.size(); i++) xySubAverageMultiSum += (xValues.get(i) - xAverage) * (yValues.get(i) - yAverage);
-		
-		// Calculate slope and y-intercept.
-		regression[0] = xSubAverageRaisedSum / xySubAverageMultiSum;
-		regression[1] = yAverage - regression[0] * xAverage;
-		
-		return regression;
+		if (event.sensor == mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE)) sensorRoomTemperature = event.values[0];
+//		else if (event.sensor == mSensorManager.getDefaultSensor(Sensor.TYPE_RELATIVE_HUMIDITY)) sensorHumidity = event.values[0];
 	}
 }

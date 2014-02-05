@@ -41,7 +41,8 @@ public class Bluetooth
 	public void checkBt()
 	{
 		mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-		address = mBluetoothAdapter.getAddress();
+//		address = mBluetoothAdapter.getAddress();
+		// Hardcoded MAC address of the arduino.
 		address = "00:12:09:28:09:90";
 		if (!mBluetoothAdapter.isEnabled())
 		{
@@ -57,7 +58,7 @@ public class Bluetooth
 	}
 	
 	public void connect()
-	{
+	{	
 		BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
 		Log.d(MainActivity.TAG, "Connecting to ... " + address);
 		mBluetoothAdapter.cancelDiscovery();
@@ -134,7 +135,11 @@ public class Bluetooth
 					catch(IOException ex)
 					{
 						stopWorker = true;
-					}
+					} 
+					catch(NullPointerException ex)
+					{
+						stopWorker = true;
+					} 
 				}
 			}
 		});	
