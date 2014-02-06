@@ -32,12 +32,8 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity implements SensorEventListener
 {	
-	// TODO Remove graph - done
 	// TODO Time to turn on
 	// TODO UI
-	// TODO Status indicator - part
-	// TODO Sound or vibration - done
-	// TODO SMS - nah
 	
 	// Make variables.
 	private float beta;
@@ -47,19 +43,21 @@ public class MainActivity extends Activity implements SensorEventListener
 	private ArrayList<Float> temperatureAverageList;
 	private float sensorRoomTemperature;
 	private float sensorTemperature = 1337;
-//	private float humidity;
 	private float sensorHumidity;
 	private boolean hasSensor = false;
 	private Formatter formatter;
 	protected static final String TAG = "brutalbeta";
-	private boolean isReadyToTurn = false;
+	private boolean isReadyToTurn = true;
+	private float temperatureAverage;
+	private int timeToTurnOn;
+	
+//	private int temp;
 	
 	// Android variables.
 	private SeekBar roomTempSlider;
 	private TextView roomTempNumber;
 	private TextView roomTempText;
 	private TextView messageText;
-	private TextView dewPointText;
 	private ImageView imageView;
 	
 	// Notification variables.
@@ -71,17 +69,12 @@ public class MainActivity extends Activity implements SensorEventListener
 	
 	// Bluetooth.
 	private Bluetooth bluetooth;
-	protected static String bluetoothData = "1337,1337";
+	protected static String bluetoothData = "1337.0,1337.0";
 	private String[] bluetoothDataSplit;
 	
 	// Sensor variables.
 	private SensorManager mSensorManager;
 	private Sensor mTemperature;
-	private Sensor mHumidity;
-	
-	// Graph variables.
-	private static ArrayList<Float> dewPointList;
-	private static ArrayList<Float> dewPointLongList;	// Remove sis------------------------------------------------
 	
 	@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 	@Override
@@ -93,7 +86,6 @@ public class MainActivity extends Activity implements SensorEventListener
 		// Initialize variables.
 		beta = 17.502f;
 		lambda = 240.97f;
-		dewPointText = (TextView) findViewById(R.id.dewPointTextView);
 		roomTempSlider = (SeekBar) findViewById(R.id.roomTempSlider);
 		roomTempNumber = (TextView) findViewById(R.id.roomTempNumber);
 		roomTempText = (TextView) findViewById(R.id.roomTempText);
@@ -109,7 +101,7 @@ public class MainActivity extends Activity implements SensorEventListener
 		soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 		// Prepare the build of the notification.
 		mBuilder = new NotificationCompat.Builder(getApplicationContext())
-			.setSmallIcon(R.drawable.ic_launcher)
+			.setSmallIcon(R.drawable.water_icon_144)
 			.setContentTitle(getString(R.string.app_name))
 			.setContentText(getString(R.string.notificationText));
 		
@@ -127,19 +119,11 @@ public class MainActivity extends Activity implements SensorEventListener
 		{
 			hasSensor = true;
 			mTemperature = mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
-			mHumidity = mSensorManager.getDefaultSensor(Sensor.TYPE_RELATIVE_HUMIDITY);
 			// Remove unneeded Views.
 			roomTempText.setVisibility(View.GONE);
 			roomTempSlider.setVisibility(View.GONE);
 		}
-		else 
-		{
-			hasSensor = false;
-		}
-		
-		// Graph variables.
-		dewPointList = new ArrayList<Float>();
-		dewPointLongList = new ArrayList<Float>();
+		else hasSensor = false;
 		
 		// Start listeners.
 		roomTempSlider.setOnSeekBarChangeListener(new OnSeekBarChangeListener()
@@ -158,7 +142,7 @@ public class MainActivity extends Activity implements SensorEventListener
 			}
 		});
 
-		// Start timer.
+		// Start timer and repeat task every second.
 		Log.d(TAG, "Starting timer loop.");
 		Timer timer = new Timer();
 		timer.schedule(new TimerTask()
@@ -200,11 +184,11 @@ public class MainActivity extends Activity implements SensorEventListener
 	protected void onResume()
 	{
 		super.onResume();
+		// Check if phone has sensor.
 		if (hasSensor)
 		{
 			// Register sensors.
 			mSensorManager.registerListener(this, mTemperature, SensorManager.SENSOR_DELAY_NORMAL);
-			mSensorManager.registerListener(this, mHumidity, SensorManager.SENSOR_DELAY_NORMAL);
 		}
 	}
 	
@@ -235,22 +219,21 @@ public class MainActivity extends Activity implements SensorEventListener
 		public void run()
 		{
 			// Get input data.
-			bluetoothDataSplit = bluetoothData.split(",");			
-
+			bluetoothDataSplit = bluetoothData.split(",");
+			
+			// To Simulate a increase in temperature.
+//			bluetoothDataSplit[1] = String.valueOf(-10 + temp);
+//			temp++;
+			
 			// Temperature.
-			if (!hasSensor)
-			{
-				// Slider value.
-				temperature = (Float.parseFloat(String.valueOf(roomTempSlider.getProgress())) / 10) + 10;
-			}
-			else
-			{
-				temperature = sensorRoomTemperature;
-			}
+			// Check if phone don't have sensor and get the slider value instead.
+			if (!hasSensor) temperature = (Float.parseFloat(String.valueOf(roomTempSlider.getProgress())) / 10) + 10;
+			else temperature = sensorRoomTemperature;
+			
 			// Temperature from the Arduino sensor.
 			sensorTemperature = Float.parseFloat(bluetoothDataSplit[1]);
 			
-			float temperatureAverage = 0;
+			temperatureAverage = 0;
 			
 			// Check if sensor data has been received.
 			if (sensorTemperature != 1337)
@@ -258,18 +241,24 @@ public class MainActivity extends Activity implements SensorEventListener
 				// Adds sensor temperature to a list.
 				temperatureList.add(sensorTemperature);
 				
-				// Builds average list.
-				for (int i = 0; i < temperatureList.size() - 1; i++)
+				// Have a maximum of 10 elements in the temperature list.
+				if (temperatureList.size() > 10) temperatureList.remove(0);
+				
+				if (temperatureList.size() != 1)
 				{
-					// Adds the difference between each entry. 
-					temperatureAverageList.add(temperatureList.get(i + 1) - temperatureList.get(i));
+					// Builds average list.
+					for (int i = 0; i < temperatureList.size() - 1; i++)
+					{
+						// Adds the difference between each entry. 
+						temperatureAverageList.add(temperatureList.get(i + 1) - temperatureList.get(i));
+					}
+					// Adds the average list to average temperature.
+					for (Float temperatureAverageValue : temperatureAverageList) temperatureAverage += temperatureAverageValue;
+					// Divide the average value by the list size.
+					temperatureAverage /= temperatureAverageList.size();
+					// Clear the average list to avoid clutter.
+					temperatureAverageList.clear();
 				}
-				// Adds the average list to average temperature.
-				for (Float temperatureAverageValue : temperatureAverageList) temperatureAverage += temperatureAverageValue;
-				// Divide the average value by the list size.
-				temperatureAverage /= temperatureAverageList.size();
-				// Clear the average list to avoid clutter.
-				temperatureAverageList.clear();
 			}
 
 			// Set humidity value.
@@ -279,50 +268,43 @@ public class MainActivity extends Activity implements SensorEventListener
 			float parentheses = (float) (Math.log(sensorHumidity / 100) + (getBeta() * temperature) / (getLambda() + temperature));
 			float dewPoint = (getLambda() * parentheses) / (getBeta() - parentheses);
 			
-			// Format output.
-			formatter = new Formatter();
-			String dewPointString = formatter.format("%.1f", dewPoint).out().toString();
-			formatter.close();
-			
-			// Insert to list.
-			dewPointList.add(dewPoint);
-			dewPointLongList.add(dewPoint);
-			
-			// Remove last value on the list if it is larger than 10.
-			if (dewPointList.size() > 10) dewPointList.remove(0);
-			
-			// Remove last value on the list if it is larger than 3600.
-			if (dewPointLongList.size() > 3600) dewPointList.remove(0);
-		
+			// Calculate the estimated number of seconds for the components the be ready to turn on.
+			timeToTurnOn = (int) Math.ceil((dewPoint + 1 - temperatureList.get(temperatureList.size() - 1)) / temperatureAverage);
+			// Check if timeToTurnOn is a magic number.
+			if (timeToTurnOn == Integer.MAX_VALUE) timeToTurnOn = 0;
+
 			// Output.
 			if (hasSensor)
 			{
 				formatter = new Formatter();
-				roomTempNumber.setText(formatter.format("%.1f", sensorRoomTemperature).out().toString());
+				roomTempNumber.setText("Room temperature: " + formatter.format("%.1f", sensorRoomTemperature).out().toString());
 				formatter.close();
 			}
 			
-			dewPointText.setText("Dew point: " + dewPointString);
-
 			// Check if it is safe to turn on electronics.
-			if (sensorTemperature - 0.5 <= dewPoint)
+			if (sensorTemperature - 1 <= dewPoint)
 			{
-				messageText.setTextColor(Color.argb(255, 255, 0, 0));
-				messageText.setText("Don't turn on your electronics!");
+				// Check if enough data has been collected.
+				if (temperatureList.size() > 1)
+				{
+					messageText.setTextColor(Color.argb(255, 255, 0, 0));
+					messageText.setText("Estimated time to be safe: " + timeToTurnOn);
+				}
+				
 				// Change ready image.
-				imageView.setImageResource(R.drawable.off);
+				imageView.setImageResource(R.drawable.off_1024);
 				isReadyToTurn = false;
 			}
 			else
 			{
 				messageText.setTextColor(Color.argb(255, 0, 255, 0));
-				messageText.setText("It's now safe to turn on your electronics.");
+				messageText.setText("It's now safe.");
 				// Change ready image.
-				imageView.setImageResource(R.drawable.on);
+				imageView.setImageResource(R.drawable.on_1024);
 				// Check if it wasn't ready last update.
 				if (!isReadyToTurn)
 				{
-					// Go thought what ringer mode the phone is on.
+					// Go though what ringer mode the phone is on.
 					switch (audioManager.getRingerMode())
 					{
 					// Ringer mode is normal and the phone will receive a notification with sound and vibration.
@@ -343,12 +325,6 @@ public class MainActivity extends Activity implements SensorEventListener
 				}
 				isReadyToTurn = true;
 			}
-
-			// Debug data.
-			System.out.println(sensorTemperature + " " + temperatureAverage);
-//			System.out.println("Temperature: " + temperature + " Humidity: " + humidity + " Dew point: " + dewPoint);
-//			System.out.println("Sensor Room Temperature: " + sensorRoomTemperature);
-//			System.out.println("Sensor Temperature: " + sensorTemperature + " Sensor Humidity: " + sensorHumidity);
 		}
 	};
 
