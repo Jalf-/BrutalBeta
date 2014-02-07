@@ -1,11 +1,8 @@
 package com.company22.brutalbeta;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Formatter;
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -23,7 +20,6 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
@@ -35,7 +31,7 @@ import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 
 public class MainActivity extends Activity implements SensorEventListener
-{	
+{
 	// Make variables.
 	private float beta;
 	private float lambda;
@@ -53,10 +49,6 @@ public class MainActivity extends Activity implements SensorEventListener
 	private int timeToTurnOn;
 	private float temperatureOffset;
 	private float humidityOffset;
-	
-//	private int temp;
-	private List<String> tempList = new ArrayList<String>();
-	private boolean tempB = false;
 	
 	// Android variables.
 	private SeekBar roomTempSlider;
@@ -228,10 +220,6 @@ public class MainActivity extends Activity implements SensorEventListener
 			// Get input data.
 			bluetoothDataSplit = bluetoothData.split(",");
 			
-			// To Simulate a increase in temperature.
-//			bluetoothDataSplit[1] = String.valueOf(-10 + temp);
-//			temp++;
-			
 			// Temperature.
 			// Check if phone don't have sensor and get the slider value instead.
 			if (!hasSensor) temperature = (Float.parseFloat(String.valueOf(roomTempSlider.getProgress())) / 10) + 10;
@@ -244,7 +232,7 @@ public class MainActivity extends Activity implements SensorEventListener
 			float dewPoint = 0;
 			
 			// Check if sensor data has been received.
-			if (sensorTemperature != 1337)
+			if (sensorTemperature + getTemperatureOffset() != 1337)
 			{
 				// Adds sensor temperature to a list.
 				temperatureList.add(sensorTemperature);
@@ -333,31 +321,6 @@ public class MainActivity extends Activity implements SensorEventListener
 				isReadyToTurn = true;
 			}
 			Log.d(TAG, "temp: " + sensorTemperature + " humi: " + sensorHumidity);
-			
-			// Save file.
-			tempList.add(String.valueOf(sensorTemperature) + "," + String.valueOf(sensorHumidity) + "\n");
-			if (tempList.size() > 900)
-			{
-				tempList.remove(0);
-				if (!tempB)
-				{
-					try {
-						File file = new File(Environment.getExternalStorageDirectory() + File.separator + "sampleData.csv");
-						file.createNewFile();
-						FileOutputStream osw = new FileOutputStream(file);
-
-						for (String string : tempList) osw.write(string.getBytes());
-						osw.close();
-						
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-					tempB = true;
-				}
-				else Log.d(TAG, "File has been logged");
-			}
-			
-			
 		}
 	};
 
