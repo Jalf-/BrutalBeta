@@ -1,8 +1,11 @@
 package com.company22.brutalbeta;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Formatter;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -20,6 +23,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
@@ -32,9 +36,6 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity implements SensorEventListener
 {	
-	// TODO Time to turn on
-	// TODO UI
-	
 	// Make variables.
 	private float beta;
 	private float lambda;
@@ -50,8 +51,12 @@ public class MainActivity extends Activity implements SensorEventListener
 	private boolean isReadyToTurn = true;
 	private float temperatureAverage;
 	private int timeToTurnOn;
+	private float temperatureOffset;
+	private float humidityOffset;
 	
 //	private int temp;
+	private List<String> tempList = new ArrayList<String>();
+	private boolean tempB = false;
 	
 	// Android variables.
 	private SeekBar roomTempSlider;
@@ -86,6 +91,8 @@ public class MainActivity extends Activity implements SensorEventListener
 		// Initialize variables.
 		beta = 17.502f;
 		lambda = 240.97f;
+		temperatureOffset = 0.3f;
+		humidityOffset = -2.3f;
 		roomTempSlider = (SeekBar) findViewById(R.id.roomTempSlider);
 		roomTempNumber = (TextView) findViewById(R.id.roomTempNumber);
 		roomTempText = (TextView) findViewById(R.id.roomTempText);
@@ -231,9 +238,10 @@ public class MainActivity extends Activity implements SensorEventListener
 			else temperature = sensorRoomTemperature;
 			
 			// Temperature from the Arduino sensor.
-			sensorTemperature = Float.parseFloat(bluetoothDataSplit[1]);
+			sensorTemperature = Float.parseFloat(bluetoothDataSplit[1]) + getTemperatureOffset();
 			
 			temperatureAverage = 0;
+			float dewPoint = 0;
 			
 			// Check if sensor data has been received.
 			if (sensorTemperature != 1337)
@@ -259,19 +267,18 @@ public class MainActivity extends Activity implements SensorEventListener
 					// Clear the average list to avoid clutter.
 					temperatureAverageList.clear();
 				}
-			}
+				// Set humidity value.
+				sensorHumidity = Float.parseFloat(bluetoothDataSplit[0]) + getHumidityOffset();
 
-			// Set humidity value.
-			sensorHumidity = Float.parseFloat(bluetoothDataSplit[0]);
-			
-			// Dew point calculation.
-			float parentheses = (float) (Math.log(sensorHumidity / 100) + (getBeta() * temperature) / (getLambda() + temperature));
-			float dewPoint = (getLambda() * parentheses) / (getBeta() - parentheses);
-			
-			// Calculate the estimated number of seconds for the components the be ready to turn on.
-			timeToTurnOn = (int) Math.ceil((dewPoint + 1 - temperatureList.get(temperatureList.size() - 1)) / temperatureAverage);
-			// Check if timeToTurnOn is a magic number.
-			if (timeToTurnOn == Integer.MAX_VALUE) timeToTurnOn = 0;
+				// Dew point calculation.
+				float parentheses = (float) (Math.log(sensorHumidity / 100) + (getBeta() * temperature) / (getLambda() + temperature));
+				dewPoint = (getLambda() * parentheses) / (getBeta() - parentheses);
+
+				// Calculate the estimated number of seconds for the components the be ready to turn on.
+				timeToTurnOn = (int) Math.ceil((dewPoint + 1 - temperatureList.get(temperatureList.size() - 1)) / temperatureAverage);
+				// Check if timeToTurnOn is a magic number.
+				if (timeToTurnOn == Integer.MAX_VALUE) timeToTurnOn = 0;
+			}
 
 			// Output.
 			if (hasSensor)
@@ -325,6 +332,32 @@ public class MainActivity extends Activity implements SensorEventListener
 				}
 				isReadyToTurn = true;
 			}
+			Log.d(TAG, "temp: " + sensorTemperature + " humi: " + sensorHumidity);
+			
+			// Save file.
+			tempList.add(String.valueOf(sensorTemperature) + "," + String.valueOf(sensorHumidity) + "\n");
+			if (tempList.size() > 900)
+			{
+				tempList.remove(0);
+				if (!tempB)
+				{
+					try {
+						File file = new File(Environment.getExternalStorageDirectory() + File.separator + "sampleData.csv");
+						file.createNewFile();
+						FileOutputStream osw = new FileOutputStream(file);
+
+						for (String string : tempList) osw.write(string.getBytes());
+						osw.close();
+						
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					tempB = true;
+				}
+				else Log.d(TAG, "File has been logged");
+			}
+			
+			
 		}
 	};
 
@@ -360,6 +393,40 @@ public class MainActivity extends Activity implements SensorEventListener
 	public void setLambda(float lambda)
 	{
 		this.lambda = lambda;
+	}
+
+	/**
+	 * @return Temperature offset.
+	 */
+	public float getTemperatureOffset()
+	{
+		return temperatureOffset;
+	}
+
+	/**
+	 * Sets the temperature offset value.
+	 * @param temperatureOffset New offset value.
+	 */
+	public void setTemperatureOffset(float temperatureOffset)
+	{
+		this.temperatureOffset = temperatureOffset;
+	}
+
+	/**
+	 * @return Humidity offset.
+	 */
+	public float getHumidityOffset()
+	{
+		return humidityOffset;
+	}
+
+	/**
+	 * Sets the humidity offset value.
+	 * @param humidityOffset New offset value.
+	 */
+	public void setHumidityOffset(float humidityOffset)
+	{
+		this.humidityOffset = humidityOffset;
 	}
 
 	@Override

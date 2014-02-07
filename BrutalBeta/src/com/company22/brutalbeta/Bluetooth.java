@@ -47,13 +47,13 @@ public class Bluetooth
 		if (!mBluetoothAdapter.isEnabled())
 		{
 			Toast.makeText(context, "Bluetooth Disabled!",
-					Toast.LENGTH_SHORT).show();
+					Toast.LENGTH_LONG).show();
 		}
 		
 		if (mBluetoothAdapter == null)
 		{
 			Toast.makeText(context, "Bluetooth Null!",
-					Toast.LENGTH_SHORT).show();
+					Toast.LENGTH_LONG).show();
 		}
 	}
 	
