@@ -83,8 +83,8 @@ public class MainActivity extends Activity implements SensorEventListener
 		// Initialize variables.
 		beta = 17.502f;
 		lambda = 240.97f;
-		temperatureOffset = 0.3f;
-		humidityOffset = -2.3f;
+		temperatureOffset = -0.4f;
+		humidityOffset = 2.3f;
 		roomTempSlider = (SeekBar) findViewById(R.id.roomTempSlider);
 		roomTempNumber = (TextView) findViewById(R.id.roomTempNumber);
 		roomTempText = (TextView) findViewById(R.id.roomTempText);
