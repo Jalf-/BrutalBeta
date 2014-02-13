@@ -53,7 +53,7 @@ public class DoHttpPost extends AsyncTask<String, Integer, Double>
 				nameValuePairs.add(new BasicNameValuePair("TS[]", Long.toString(MainActivity.timeStampList.get(i))));
 			}
 			// Add data key.
-			nameValuePairs.add(new BasicNameValuePair("KEY", "nissemand"));
+			nameValuePairs.add(new BasicNameValuePair("KEY", MainActivity.KEY));
 			
 			// Prepare.
 			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));

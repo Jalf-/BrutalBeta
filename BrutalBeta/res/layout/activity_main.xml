@@ -65,19 +65,32 @@
         android:id="@+id/sendDataToggleButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/sendDataButton"
-        android:layout_alignBottom="@+id/sendDataButton"
-        android:layout_toLeftOf="@+id/roomTempNumber"
-        android:textColor="@color/white"
-        android:text="@string/sendData" />
+        android:layout_below="@+id/roomTempNumber"
+        android:layout_centerHorizontal="true"
+        android:text="@string/sendData"
+        android:textColor="@color/white" />
+
+    <Button
+        android:id="@+id/emptyDataButton"
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/sendDataToggleButton"
+        android:layout_alignBottom="@+id/sendDataToggleButton"
+        android:layout_marginRight="16dp"
+        android:layout_toLeftOf="@+id/sendDataToggleButton"
+        android:text="@string/emptyData"
+        android:textColor="@color/white" />
 
     <Button
         android:id="@+id/sendDataButton"
         style="?android:attr/buttonStyleSmall"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/roomTempNumber"
-        android:layout_toRightOf="@+id/roomTempNumber"
+        android:layout_alignBaseline="@+id/sendDataToggleButton"
+        android:layout_alignBottom="@+id/sendDataToggleButton"
+        android:layout_marginLeft="16dp"
+        android:layout_toRightOf="@+id/sendDataToggleButton"
         android:text="@string/sendData"
         android:textColor="@color/white" />
 

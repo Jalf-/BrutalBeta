@@ -58,6 +58,7 @@ public class MainActivity extends Activity implements SensorEventListener
 	private float temperatureOffset;
 	private float humidityOffset;
 	private byte dataIncrement;
+	protected static String KEY = "42";
 	
 	// Android variables.
 	private SeekBar roomTempSlider;
@@ -67,6 +68,7 @@ public class MainActivity extends Activity implements SensorEventListener
 	private ImageView imageView;
 	private Button sendDataButton;
 	private ToggleButton sendDataToggleButton;
+	private Button emptyDataButton;
 	
 	// Notification variables.
 	private AudioManager audioManager;
@@ -103,6 +105,7 @@ public class MainActivity extends Activity implements SensorEventListener
 		imageView = (ImageView) findViewById(R.id.statusImageView);
 		sendDataButton = (Button) findViewById(R.id.sendDataButton);
 		sendDataToggleButton = (ToggleButton) findViewById(R.id.sendDataToggleButton);
+		emptyDataButton = (Button) findViewById(R.id.emptyDataButton);
 		temperatureList = new ArrayList<Float>();
 		temperatureAverageList = new ArrayList<Float>();
 		humidityList = new ArrayList<Float>();
@@ -163,6 +166,18 @@ public class MainActivity extends Activity implements SensorEventListener
 			public void onClick(View v)
 			{
 				// Send data to website when button is clicked.
+				KEY = "42";
+				sendData();
+			}
+		});
+		
+		emptyDataButton.setOnClickListener(new OnClickListener()
+		{	
+			@Override
+			public void onClick(View v)
+			{
+				// Change key to empty every time data is sent.
+				KEY = "24";
 				sendData();
 			}
 		});
