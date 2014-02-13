@@ -61,14 +61,24 @@
         android:text="@string/defaultMessageText"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
+    <ToggleButton
+        android:id="@+id/sendDataToggleButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/sendDataButton"
+        android:layout_alignBottom="@+id/sendDataButton"
+        android:layout_toLeftOf="@+id/roomTempNumber"
+        android:textColor="@color/white"
+        android:text="@string/sendData" />
+
     <Button
         android:id="@+id/sendDataButton"
         style="?android:attr/buttonStyleSmall"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/roomTempNumber"
-        android:layout_centerHorizontal="true"
-        android:textColor="@color/white"
-        android:text="@string/sendData" />
+        android:layout_toRightOf="@+id/roomTempNumber"
+        android:text="@string/sendData"
+        android:textColor="@color/white" />
 
 </RelativeLayout>

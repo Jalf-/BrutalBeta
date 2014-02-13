@@ -42,8 +42,9 @@ public class DoHttpPost extends AsyncTask<String, Integer, Double>
 			
 			for (int i = 0; i < MainActivity.temperatureList.size(); i++)
 			{
-				nameValuePairs.add(new BasicNameValuePair("TP" + i, Float.toString(MainActivity.temperatureList.get(0))));
-				nameValuePairs.add(new BasicNameValuePair("RH" + i, Float.toString(MainActivity.humidityList.get(0))));
+				nameValuePairs.add(new BasicNameValuePair("TP[]", Float.toString(MainActivity.temperatureList.get(0))));
+				nameValuePairs.add(new BasicNameValuePair("RH[]", Float.toString(MainActivity.humidityList.get(0))));
+				nameValuePairs.add(new BasicNameValuePair("TS[]", Long.toString(MainActivity.timeStampList.get(0))));
 			}
 			
 			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));

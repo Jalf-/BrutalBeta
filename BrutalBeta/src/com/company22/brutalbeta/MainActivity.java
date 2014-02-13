@@ -34,6 +34,7 @@ import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 public class MainActivity extends Activity implements SensorEventListener
 {
@@ -43,6 +44,7 @@ public class MainActivity extends Activity implements SensorEventListener
 	private float temperature;
 	protected static ArrayList<Float> temperatureList;
 	protected static ArrayList<Float> humidityList;
+	protected static ArrayList<Long> timeStampList;
 	private ArrayList<Float> temperatureAverageList;
 	private float sensorRoomTemperature;
 	private float sensorTemperature = 1337;
@@ -55,6 +57,7 @@ public class MainActivity extends Activity implements SensorEventListener
 	private int timeToTurnOn;
 	private float temperatureOffset;
 	private float humidityOffset;
+	private byte dataIncrement;
 	
 	// Android variables.
 	private SeekBar roomTempSlider;
@@ -63,6 +66,7 @@ public class MainActivity extends Activity implements SensorEventListener
 	private TextView messageText;
 	private ImageView imageView;
 	private Button sendDataButton;
+	private ToggleButton sendDataToggleButton;
 	
 	// Notification variables.
 	private AudioManager audioManager;
@@ -98,9 +102,12 @@ public class MainActivity extends Activity implements SensorEventListener
 		messageText = (TextView) findViewById(R.id.messageText);
 		imageView = (ImageView) findViewById(R.id.statusImageView);
 		sendDataButton = (Button) findViewById(R.id.sendDataButton);
+		sendDataToggleButton = (ToggleButton) findViewById(R.id.sendDataToggleButton);
 		temperatureList = new ArrayList<Float>();
 		temperatureAverageList = new ArrayList<Float>();
 		humidityList = new ArrayList<Float>();
+		timeStampList = new ArrayList<Long>();
+		dataIncrement = 0;
 		
 		// Notification variables.
 		audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
@@ -155,13 +162,8 @@ public class MainActivity extends Activity implements SensorEventListener
 			@Override
 			public void onClick(View v)
 			{
-				ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-				NetworkInfo networkInfo = connManager.getActiveNetworkInfo();
-				
-				if (networkInfo != null && networkInfo.isConnected())
-					new DoHttpPost().execute("1337");
-				else 
-					Toast.makeText(getApplicationContext(), "Couldn't connect to address!", Toast.LENGTH_LONG).show();
+				// Send data to website when button is clicked.
+				sendData();
 			}
 		});
 		
@@ -286,8 +288,14 @@ public class MainActivity extends Activity implements SensorEventListener
 				// Adds sensor humidity to a list.
 				humidityList.add(sensorHumidity);
 				
-				// Have a maximum of 10 elements in the temperature list.
+				// Have a maximum of 10 elements in the humidity list.
 				if (humidityList.size() > 10) humidityList.remove(0);
+				
+				// Timestamp.
+				timeStampList.add(System.currentTimeMillis());
+				
+				// Have a maximum of 10 elements in the timestamp list.
+				if (timeStampList.size() > 10) timeStampList.remove(0);
 
 				// Dew point calculation.
 				float parentheses = (float) (Math.log(sensorHumidity / 100) + (getBeta() * temperature) / (getLambda() + temperature));
@@ -297,6 +305,16 @@ public class MainActivity extends Activity implements SensorEventListener
 				timeToTurnOn = (int) Math.ceil((dewPoint + 1 - temperatureList.get(temperatureList.size() - 1)) / temperatureAverage);
 				// Check if timeToTurnOn is a magic number.
 				if (timeToTurnOn == Integer.MAX_VALUE) timeToTurnOn = 0;
+				
+				// Check if toggle data transfer is true
+				// and only send data every 10 time.
+				if (sendDataToggleButton.isChecked()
+						&& dataIncrement >= 9)
+				{
+					dataIncrement = 0;
+					sendData();
+				}
+				else dataIncrement++;
 			}
 
 			// Output.
@@ -354,6 +372,20 @@ public class MainActivity extends Activity implements SensorEventListener
 			Log.d(TAG, "temp: " + sensorTemperature + " humi: " + sensorHumidity);
 		}
 	};
+	
+	/**
+	 * Method to send data to external website.
+	 */
+	private void sendData()
+	{
+		ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo networkInfo = connManager.getActiveNetworkInfo();
+		
+		if (networkInfo != null && networkInfo.isConnected())
+			new DoHttpPost().execute("1337");
+		else 
+			Toast.makeText(getApplicationContext(), "Couldn't connect to address!", Toast.LENGTH_LONG).show();
+	}
 
 	/**
 	 * @return Beta value.
@@ -433,6 +465,5 @@ public class MainActivity extends Activity implements SensorEventListener
 	{
 		// Set sensor values.
 		if (event.sensor == mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE)) sensorRoomTemperature = event.values[0];
-//		else if (event.sensor == mSensorManager.getDefaultSensor(Sensor.TYPE_RELATIVE_HUMIDITY)) sensorHumidity = event.values[0];
 	}
 }
