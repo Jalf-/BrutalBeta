@@ -28,27 +28,37 @@ public class DoHttpPost extends AsyncTask<String, Integer, Double>
 		return null;
 	}
 	
+	/**
+	 * Method to post data to the website.
+	 * @param data Not used.
+	 */
 	protected void postData(String data)
 	{
+		// Url to connect to.
 		String baseUrl = "http://salty.dk/benjamin/index.php";
 		
+		// Create variables.
 		HttpClient httpClient = new DefaultHttpClient();
 		HttpPost httpPost = new HttpPost(baseUrl);
 		
 		try
 		{
-			// Add your data
 			List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 			
+			// Adding data to post.
 			for (int i = 0; i < MainActivity.temperatureList.size(); i++)
 			{
-				nameValuePairs.add(new BasicNameValuePair("TP[]", Float.toString(MainActivity.temperatureList.get(0))));
-				nameValuePairs.add(new BasicNameValuePair("RH[]", Float.toString(MainActivity.humidityList.get(0))));
-				nameValuePairs.add(new BasicNameValuePair("TS[]", Long.toString(MainActivity.timeStampList.get(0))));
+				nameValuePairs.add(new BasicNameValuePair("TP[]", Float.toString(MainActivity.temperatureList.get(i))));
+				nameValuePairs.add(new BasicNameValuePair("RH[]", Float.toString(MainActivity.humidityList.get(i))));
+				nameValuePairs.add(new BasicNameValuePair("TS[]", Long.toString(MainActivity.timeStampList.get(i))));
 			}
+			// Add data key.
+			nameValuePairs.add(new BasicNameValuePair("KEY", "nissemand"));
 			
+			// Prepare.
 			httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 			
+			// Send the request.
 			httpClient.execute(httpPost);
 			Log.d(MainActivity.TAG, "Data sent!");
 		}
