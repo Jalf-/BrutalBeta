@@ -17,6 +17,8 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.media.RingtoneManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -25,10 +27,13 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity implements SensorEventListener
 {
@@ -36,7 +41,8 @@ public class MainActivity extends Activity implements SensorEventListener
 	private float beta;
 	private float lambda;
 	private float temperature;
-	private ArrayList<Float> temperatureList;
+	protected static ArrayList<Float> temperatureList;
+	protected static ArrayList<Float> humidityList;
 	private ArrayList<Float> temperatureAverageList;
 	private float sensorRoomTemperature;
 	private float sensorTemperature = 1337;
@@ -56,6 +62,7 @@ public class MainActivity extends Activity implements SensorEventListener
 	private TextView roomTempText;
 	private TextView messageText;
 	private ImageView imageView;
+	private Button sendDataButton;
 	
 	// Notification variables.
 	private AudioManager audioManager;
@@ -90,8 +97,10 @@ public class MainActivity extends Activity implements SensorEventListener
 		roomTempText = (TextView) findViewById(R.id.roomTempText);
 		messageText = (TextView) findViewById(R.id.messageText);
 		imageView = (ImageView) findViewById(R.id.statusImageView);
+		sendDataButton = (Button) findViewById(R.id.sendDataButton);
 		temperatureList = new ArrayList<Float>();
 		temperatureAverageList = new ArrayList<Float>();
+		humidityList = new ArrayList<Float>();
 		
 		// Notification variables.
 		audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
@@ -140,10 +149,26 @@ public class MainActivity extends Activity implements SensorEventListener
 				roomTempNumber.setText(String.valueOf((Float.parseFloat(String.valueOf(progress)) / 10) + 10));
 			}
 		});
-
+		
+		sendDataButton.setOnClickListener(new OnClickListener()
+		{
+			@Override
+			public void onClick(View v)
+			{
+				ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+				NetworkInfo networkInfo = connManager.getActiveNetworkInfo();
+				
+				if (networkInfo != null && networkInfo.isConnected())
+					new DoHttpPost().execute("1337");
+				else 
+					Toast.makeText(getApplicationContext(), "Couldn't connect to address!", Toast.LENGTH_LONG).show();
+			}
+		});
+		
 		// Start timer and repeat task every second.
 		Log.d(TAG, "Starting timer loop.");
 		Timer timer = new Timer();
+
 		timer.schedule(new TimerTask()
 		{	
 			@Override
@@ -257,6 +282,12 @@ public class MainActivity extends Activity implements SensorEventListener
 				}
 				// Set humidity value.
 				sensorHumidity = Float.parseFloat(bluetoothDataSplit[0]) + getHumidityOffset();
+				
+				// Adds sensor humidity to a list.
+				humidityList.add(sensorHumidity);
+				
+				// Have a maximum of 10 elements in the temperature list.
+				if (humidityList.size() > 10) humidityList.remove(0);
 
 				// Dew point calculation.
 				float parentheses = (float) (Math.log(sensorHumidity / 100) + (getBeta() * temperature) / (getLambda() + temperature));

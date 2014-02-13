@@ -10,5 +10,6 @@
     <string name="defaultMessageText">Pending results.</string>
     <string name="defaultImage">This is a image.</string>
     <string name="notificationText">It\'s now ready to turn on.</string>
+    <string name="sendData">Send data.</string>
 
 </resources>
