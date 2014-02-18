@@ -3,7 +3,6 @@ package com.company22.brutalbeta;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Formatter;
-import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
