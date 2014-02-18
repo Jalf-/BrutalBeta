@@ -51,6 +51,8 @@ public class DoHttpPost extends AsyncTask<String, Integer, Double>
 				nameValuePairs.add(new BasicNameValuePair("TP[]", Float.toString(MainActivity.temperatureList.get(i))));
 				nameValuePairs.add(new BasicNameValuePair("RH[]", Float.toString(MainActivity.humidityList.get(i))));
 				nameValuePairs.add(new BasicNameValuePair("TS[]", Long.toString(MainActivity.timeStampList.get(i))));
+				nameValuePairs.add(new BasicNameValuePair("DP[]", Float.toString(MainActivity.dewPointList.get(i))));
+				nameValuePairs.add(new BasicNameValuePair("RT[]", Float.toString(MainActivity.roomTemperatureList.get(i))));
 			}
 			// Add data key.
 			nameValuePairs.add(new BasicNameValuePair("KEY", MainActivity.KEY));

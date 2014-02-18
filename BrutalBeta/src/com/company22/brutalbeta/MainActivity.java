@@ -3,6 +3,7 @@ package com.company22.brutalbeta;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Formatter;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -45,6 +46,8 @@ public class MainActivity extends Activity implements SensorEventListener
 	protected static ArrayList<Float> temperatureList;
 	protected static ArrayList<Float> humidityList;
 	protected static ArrayList<Long> timeStampList;
+	protected static ArrayList<Float> dewPointList;
+	protected static ArrayList<Float> roomTemperatureList;
 	private ArrayList<Float> temperatureAverageList;
 	private float sensorRoomTemperature;
 	private float sensorTemperature = 1337;
@@ -58,6 +61,7 @@ public class MainActivity extends Activity implements SensorEventListener
 	private float temperatureOffset;
 	private float humidityOffset;
 	private byte dataIncrement;
+	private byte buttonSpamIncrement = 10;
 	protected static String KEY = "42";
 	
 	// Android variables.
@@ -110,6 +114,8 @@ public class MainActivity extends Activity implements SensorEventListener
 		temperatureAverageList = new ArrayList<Float>();
 		humidityList = new ArrayList<Float>();
 		timeStampList = new ArrayList<Long>();
+		dewPointList = new ArrayList<Float>();
+		roomTemperatureList = new ArrayList<Float>();
 		dataIncrement = 0;
 		
 		// Notification variables.
@@ -137,7 +143,7 @@ public class MainActivity extends Activity implements SensorEventListener
 		{
 			hasSensor = true;
 			mTemperature = mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
-			// Remove unneeded Views.
+			// Remove unnecessary Views.
 			roomTempText.setVisibility(View.GONE);
 			roomTempSlider.setVisibility(View.GONE);
 		}
@@ -165,9 +171,20 @@ public class MainActivity extends Activity implements SensorEventListener
 			@Override
 			public void onClick(View v)
 			{
-				// Send data to website when button is clicked.
-				KEY = "42";
-				sendData();
+				// Send data to website when button is clicked and button timer is down.
+				if (buttonSpamIncrement == 0)
+				{
+					KEY = "42";
+					sendData();
+					buttonSpamIncrement = 10;
+				}
+				else
+				{
+					System.out.println(Byte.toString(buttonSpamIncrement));
+					Toast.makeText(getApplicationContext(), getApplicationContext().getString(R.string.buttonNotReady) +
+							Byte.valueOf(buttonSpamIncrement)
+							+ getApplicationContext().getString(R.string.seconds), Toast.LENGTH_SHORT).show();
+				}
 			}
 		});
 		
@@ -259,6 +276,12 @@ public class MainActivity extends Activity implements SensorEventListener
 		@Override
 		public void run()
 		{
+			// --- To demonstrate the programs function.
+//			Random random = new Random();
+//			bluetoothData = Float.toString(5 * random.nextFloat() + 30) + "," + Float.toString(5 * random.nextFloat() + 10);
+//			random = null;
+			// ---
+			
 			// Get input data.
 			bluetoothDataSplit = bluetoothData.split(",");
 			
@@ -315,6 +338,18 @@ public class MainActivity extends Activity implements SensorEventListener
 				// Dew point calculation.
 				float parentheses = (float) (Math.log(sensorHumidity / 100) + (getBeta() * temperature) / (getLambda() + temperature));
 				dewPoint = (getLambda() * parentheses) / (getBeta() - parentheses);
+				
+				// Adds dew point to a list.
+				dewPointList.add(dewPoint);
+				
+				// Have a maximum of 10 elements in the dew point list.
+				if (dewPointList.size() > 10) dewPointList.remove(0);
+				
+				// Adds room temperature to a list.
+				roomTemperatureList.add(temperature);
+				
+				// Have a maximum of 10 elements in the room temperature list.
+				if (roomTemperatureList.size() > 10) roomTemperatureList.remove(0);
 
 				// Calculate the estimated number of seconds for the components the be ready to turn on.
 				timeToTurnOn = (int) Math.ceil((dewPoint + 1 - temperatureList.get(temperatureList.size() - 1)) / temperatureAverage);
@@ -330,6 +365,9 @@ public class MainActivity extends Activity implements SensorEventListener
 					sendData();
 				}
 				else dataIncrement++;
+				
+				// Increment every time data is received.
+				if (buttonSpamIncrement > 0) buttonSpamIncrement--;
 			}
 
 			// Output.

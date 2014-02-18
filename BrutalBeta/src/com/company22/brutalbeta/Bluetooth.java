@@ -14,7 +14,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 /**
- * Bluetooth class that handles the bluetooth connection.
+ * Bluetooth class that handles the Bluetooth connection.
  * Bluetooth source code 
  * http://forum.arduino.cc/index.php?topic=157621.0
  */
