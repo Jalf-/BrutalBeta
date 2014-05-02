@@ -281,6 +281,8 @@ public class MainActivity extends Activity implements SensorEventListener
 //			random = null;
 			// ---
 			
+			if (bluetoothData.contains("Failed to read from DHT")) return;
+			
 			// Get input data.
 			bluetoothDataSplit = bluetoothData.split(",");
 			

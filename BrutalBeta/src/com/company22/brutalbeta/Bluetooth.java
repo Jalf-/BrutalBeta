@@ -2,6 +2,7 @@ package com.company22.brutalbeta;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Set;
 import java.util.UUID;
 
 import android.bluetooth.BluetoothAdapter;
@@ -17,6 +18,7 @@ import android.widget.Toast;
  * Bluetooth class that handles the Bluetooth connection.
  * Bluetooth source code 
  * http://forum.arduino.cc/index.php?topic=157621.0
+ * With own additions. 
  */
 public class Bluetooth
 {
@@ -29,7 +31,7 @@ public class Bluetooth
 	private int readBufferPosition = 0;
 	private byte[] readBuffer = new byte[1024];
 	private Handler handler = new Handler();
-	private static String address = "XX:XX:XX:XX:XX:XX";
+	private static String address = "00:00:00:00:00:00";
 	private static final UUID MY_UUID = UUID
             .fromString("00001101-0000-1000-8000-00805F9B34FB");
 
@@ -41,20 +43,42 @@ public class Bluetooth
 	public void checkBt()
 	{
 		mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-//		address = mBluetoothAdapter.getAddress();
-		// Hardcoded MAC address of the arduino.
-		address = "00:12:09:28:09:90";
 		if (!mBluetoothAdapter.isEnabled())
 		{
+			Log.e(MainActivity.TAG, "Bluetooth Disabled!");
 			Toast.makeText(context, "Bluetooth Disabled!",
 					Toast.LENGTH_LONG).show();
+			return;
 		}
 		
 		if (mBluetoothAdapter == null)
 		{
+			Log.e(MainActivity.TAG, "Bluetooth Null!");
 			Toast.makeText(context, "Bluetooth Null!",
 					Toast.LENGTH_LONG).show();
+			return;
 		}
+		
+		Set<BluetoothDevice> bondedDevices = mBluetoothAdapter.getBondedDevices();
+		
+		if (bondedDevices.isEmpty())
+		{
+			Log.e(MainActivity.TAG, "No devices paired...");
+			Toast.makeText(context, "No device paired!",
+					Toast.LENGTH_LONG).show();
+			return;
+		}
+		
+		for (BluetoothDevice device : bondedDevices)
+		{
+			if (device.getName().equalsIgnoreCase("Benjabi"))
+			{
+				Log.d(MainActivity.TAG, "Device: address: " + device.getAddress() + " name: " + device.getName());
+				address = device.getAddress();
+				break;
+			}
+		}
+		
 	}
 	
 	public void connect()
